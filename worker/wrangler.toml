@@ -1,0 +1,19 @@
+name = "swu-leave"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "swu-leave-db"
+database_id = "81eae414-73c3-4203-92f0-5b68bdb77d42"
+migrations_dir = "migrations"
+
+[[kv_namespaces]]
+binding = "FILES"
+id = "3cb7fc4e2dbc4902b9567ac690392ed7"
+
+[vars]
+SESSION_SECRET = "swu-leave-secret-change-in-dashboard"

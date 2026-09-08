@@ -2,26 +2,49 @@
 
 ระบบติดตามสถานะเอกสารการลา สำหรับอาจารย์/บุคลากร (Staff), หัวหน้างาน (Teacher/Supervisor) และเจ้าหน้าที่ธุรการ (Admin)
 
-## เทคโนโลยีที่ใช้
-- **Backend:** Node.js + Express
-- **Database:** SQLite (ผ่าน sql.js)
-- **Frontend:** Bootstrap 5 (รองรับมือถือและคอมพิวเตอร์)
-- **ไฟล์แนบ:** รับเฉพาะไฟล์ PDF เท่านั้น (สูงสุด 10MB)
+**ออนไลน์ที่:** https://swu-leave.chanok-282.workers.dev (Cloudflare Workers)
 
-## การติดตั้ง
+## สองเวอร์ชันของระบบ
 
+| เวอร์ชัน | โฟลเดอร์ | รันที่ไหน | Database | ไฟล์แนบ |
+|---|---|---|---|---|
+| **Cloudflare (แนะนำ)** | `worker/` | https://swu-leave.chanok-282.workers.dev | Cloudflare D1 | Cloudflare KV |
+| **Local (เดิม)** | รากโปรเจกต์ | http://localhost:3000 | SQLite (sql.js) | uploads/ folder |
+
+---
+
+## เวอร์ชัน Cloudflare (Deploy แล้ว)
+
+Stack: Cloudflare Workers + Hono + D1 + KV + Bootstrap 5
+
+### การ Deploy ใหม่
 ```bash
-# 1. ติดตั้ง dependencies
+cd worker
 npm install
-
-# 2. นำเข้าข้อมูลผู้ใช้จาก data.xlsx ลงใน SQLite
-npm run import
-
-# 3. เริ่มต้นเซิร์ฟเวอร์
-npm start
+npx wrangler d1 migrations apply swu-leave-db --remote   # สร้างตาราง + seed ผู้ใช้ครั้งแรก
+npx wrangler deploy
 ```
 
-เปิดเว็บเบราว์เซอร์ไปที่: http://localhost:3000
+### การตั้งค่า
+- **SESSION_SECRET**: ตั้งค่าได้ใน `worker/wrangler.toml` → เปลี่ยนจากค่าเริ่มต้นก่อนใช้งานจริง
+- **ไฟล์ใบลา**: เก็บใน KV namespace `FILES` (ค่าสูงสุด 25MB/ไฟล์, ใช้ได้กับ PDF <10MB)
+
+### ข้อจำกัดที่ต่างจากเวอร์ชัน Local
+- **อีเมล**: บน Cloudflare Workers ไม่มี SMTP (ไม่สามารถใช้ nodemailer ได้) → ระบบรองรับ **HTTP Email API** (Resend-compatible, ส่ง JSON ผ่าน `POST` ด้วย Bearer token)
+  - Admin ตั้งค่า **API URL + API Key + From Email** ในหน้าจัดการใบลา
+  - ถ้าไม่ตั้ง API Key ระบบจะบันทึกสถานะเป็น **ส่งต่อสำเร็จ (จำลอง)** — สถานะในระบบยังครบ แต่ไม่มีอีเมลจริงถูกส่ง
+  - ตัวอย่าง API: Resend (`https://api.resend.com/emails`), หรือ Mailgun/SendGrid HTTP API
+
+---
+
+## เวอร์ชัน Local (เดิม)
+
+### การติดตั้ง
+```bash
+npm install
+npm run import   # นำเข้าผู้ใช้จาก data.xlsx ลงใน SQLite
+npm start        # เปิด http://localhost:3000
+```
 
 ## บัญชีผู้ใช้ (Password เริ่มต้นทั้งหมด: `123456`)
 
@@ -57,31 +80,20 @@ npm start
 - หน้าแบ่งเป็น 2 แท็บ: **ส่งต่อเอกสาร** และ **ใบลาของฉัน**
 - **ส่งต่อเอกสาร:** เห็นรายการลาที่อนุมัติแล้ว ดาวน์โหลดไฟล์ที่ลงนามเรียบร้อย และส่งต่อเอกสารทางอีเมลไปยังเจ้าหน้าที่บุคคล/HR โดยระบุ email
 - **ใบลาของฉัน:** Admin สามารถยื่นใบลาของตนเองได้เหมือน Staff (แนบไฟล์ PDF, ลาไปต่างประเทศต้อง 2 ไฟล์) และติดตามสถานะ
-- ตั้งค่า SMTP สำหรับการส่งอีเมลจริง
-
-## การตั้งค่าการส่งอีเมลจริง (SMTP)
-ในหน้าที่จัดการของ Admin ให้กรอก:
-- **SMTP Host / Port** เช่น `smtp.swu.ac.th:587` หรือ `smtp.gmail.com:587`
-- **ผู้ใช้ / รหัสผ่าน** (บัญชีที่ใช้ส่ง)
-  - ถ้าใช้ Gmail ต้องเปิด "App Password" 2-Factor Authentication
-- **Email ผู้รับ** = email เจ้าหน้าที่บุคคล
-
-> หมายเหตุ: เจ้าหน้าที่บุคคล (นางศิริวรรณ เขียวชะอุ่ม) ใน data.xlsx ไม่มี email — ต้องระบุ email ส่งต่อเอง
 
 ## โครงสร้างโปรเจกต์
 ```
-server.js            # จุดเริ่มต้น Express
+worker/              # เวอร์ชัน Cloudflare Workers (แนะนำ)
+  wrangler.toml      # config: D1 + KV + vars
+  migrations/        # SQL migrations (schema + seed ผู้ใช้)
+  src/index.js       # Hono app (routes ทั้งหมด)
+  src/templates.js   # HTML templates
+server.js            # จุดเริ่มต้น Express (เวอร์ชัน Local)
 db.js                # จัดการ SQLite
 import_data.js       # นำเข้าข้อมูลจาก data.xlsx
-routes/
-  auth.js            # login/logout
-  staff.js           # หน้าบุคลากร
-  supervisor.js      # หน้าหัวหน้างาน
-  admin.js           # หน้าธุรการ + ส่งอีเมล
-views/               # EJS templates
-  login.ejs
-  staff/  supervisor/  admin/
+routes/              # Express routes (เวอร์ชัน Local)
+views/               # EJS templates (เวอร์ชัน Local)
 public/              # CSS
-uploads/             # ไฟล์ใบลาที่อัพโหลด
-data/                # ฐานข้อมูล SQLite
+uploads/             # ไฟล์ใบลาที่อัพโหลด (เวอร์ชัน Local)
+data/                # ฐานข้อมูล SQLite (เวอร์ชัน Local)
 ```
