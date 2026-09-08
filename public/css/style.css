@@ -1,0 +1,45 @@
+:root {
+  --primary: #0d6efd;
+  --secondary: #6c757d;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, 'Noto Sans Thai', sans-serif;
+  background-color: #f4f6f9;
+  min-height: 100vh;
+}
+
+.login-page {
+  background: linear-gradient(135deg, #e0e7ff 0%, #f3f4ff 100%);
+}
+
+.table-responsive {
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.card {
+  border-radius: 0.75rem;
+}
+
+.navbar {
+  padding-top: 0.6rem;
+  padding-bottom: 0.6rem;
+}
+
+.list-group-item {
+  border-left: 4px solid var(--bs-dark);
+}
+
+@media (max-width: 767px) {
+  body {
+    padding-bottom: 70px;
+  }
+  .table th, .table td {
+    font-size: 0.85rem;
+    padding: 0.5rem;
+  }
+  .navbar .btn-sm {
+    font-size: 0.8rem;
+  }
+}

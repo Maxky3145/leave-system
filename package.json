@@ -1,0 +1,20 @@
+{
+  "name": "leave-system",
+  "version": "1.0.0",
+  "description": "Leave Management System for SWU",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "import": "node import_data.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "sql.js": "^1.11.0",
+    "ejs": "^3.1.10",
+    "express": "^4.21.0",
+    "express-session": "^1.18.0",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.9.0",
+    "xlsx": "^0.18.5"
+  }
+}

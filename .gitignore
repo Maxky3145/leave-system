@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Database (SQLite files - recreated on import/startup)
+data/*.db
+
+# Uploaded leave files
+uploads/*
+!uploads/.gitkeep
+
+# Build / logs
+*.log
+npm-debug.log*
+
+# Environment / secrets
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Cloudflare / wrangler local state
+.wrangler/
+
+# Test artifacts
+test_*.js

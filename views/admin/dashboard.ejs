@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบการลา - หน้าเจ้าหน้าที่ธุรการ</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-danger shadow-sm">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="/admin">
+        <i class="bi bi-calendar-check"></i> ระบบการลา
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navContent">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navContent">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link active" href="/admin"><i class="bi bi-house"></i> หน้าหลัก</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/admin/submit"><i class="bi bi-plus-circle"></i> ยื่นใบลา</a>
+          </li>
+        </ul>
+        <div class="d-flex align-items-center">
+          <span class="text-white me-3 d-none d-md-inline">
+            <i class="bi bi-person-circle"></i> <%= user.name %>
+            <span class="badge bg-light text-danger ms-1">Admin</span>
+          </span>
+          <a href="/logout" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-box-arrow-right"></i> ออกจากระบบ
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container-fluid py-3 py-md-4">
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-3" id="adminTab" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="forwardTabBtn" data-bs-toggle="tab" data-bs-target="#forwardTab" type="button" role="tab">
+          <i class="bi bi-send"></i> ส่งต่อเอกสาร
+          <% if (forwardList.length > 0) { %>
+            <span class="badge bg-primary ms-1"><%= forwardList.length %></span>
+          <% } %>
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="myTabBtn" data-bs-toggle="tab" data-bs-target="#myTab" type="button" role="tab">
+          <i class="bi bi-person"></i> ใบลาของฉัน
+          <% if (myLeaves.length > 0) { %>
+            <span class="badge bg-secondary ms-1"><%= myLeaves.length %></span>
+          <% } %>
+        </button>
+      </li>
+    </ul>
+
+    <div class="tab-content">
+      <!-- ============ Forward Tab ============ -->
+      <div class="tab-pane fade show active" id="forwardTab" role="tabpanel">
+        <h5 class="fw-bold mb-3">
+          <i class="bi bi-send"></i> รายการส่งต่อเอกสารการลา
+        </h5>
+
+        <% if (forwardList.length === 0) { %>
+          <div class="text-center py-5">
+            <i class="bi bi-inbox display-1 text-muted"></i>
+            <p class="text-muted mt-3">ยังไม่มีรายการที่อนุมัติแล้วและรอส่งต่อ</p>
+          </div>
+        <% } else { %>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle bg-white rounded shadow-sm">
+              <thead class="table-light">
+                <tr>
+                  <th>ลำดับ</th>
+                  <th>ชื่อผู้ลา</th>
+                  <th>ภาควิชา/งาน</th>
+                  <th>ประเภทการลา</th>
+                  <th>วันที่ลา</th>
+                  <th>สถานะ</th>
+                  <th>จัดการ</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% forwardList.forEach(function(l, i) { %>
+                  <tr>
+                    <td><%= i + 1 %></td>
+                    <td><i class="bi bi-person"></i> <%= l.staff_name %></td>
+                    <td><small><%= l.dept_name %></small></td>
+                    <td><span class="badge bg-info text-dark"><%= l.leave_type %></span></td>
+                    <td>
+                      <small>
+                        <%= l.start_date %><br>
+                        <i class="bi bi-arrow-down"></i> <%= l.end_date %>
+                      </small>
+                    </td>
+                    <td>
+                      <% if (l.status === 'pending') { %>
+                        <span class="badge bg-warning text-dark"><i class="bi bi-clock"></i> รอพิจารณา</span>
+                      <% } else if (l.status === 'approved') { %>
+                        <span class="badge bg-success"><i class="bi bi-check-circle"></i> อนุมัติแล้ว</span>
+                      <% } else if (l.status === 'rejected') { %>
+                        <span class="badge bg-danger"><i class="bi bi-x-circle"></i> ไม่อนุมัติ</span>
+                      <% } else if (l.status === 'forwarded') { %>
+                        <span class="badge bg-primary"><i class="bi bi-send"></i> ส่งต่อแล้ว</span>
+                      <% } %>
+                    </td>
+                    <td>
+                      <a href="/admin/manage/<%= l.id %>" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-gear"></i> จัดการ
+                      </a>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </div>
+
+      <!-- ============ My Leave Tab ============ -->
+      <div class="tab-pane fade" id="myTab" role="tabpanel">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <h5 class="fw-bold mb-0">
+            <i class="bi bi-person"></i> ประวัติการลาของฉัน
+          </h5>
+          <a href="/admin/submit" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-circle"></i> ยื่นใบลาใหม่
+          </a>
+        </div>
+
+        <% if (myLeaves.length === 0) { %>
+          <div class="text-center py-5">
+            <i class="bi bi-inbox display-1 text-muted"></i>
+            <p class="text-muted mt-3">ยังไม่เคยยื่นใบลา</p>
+            <a href="/admin/submit" class="btn btn-primary mt-2">
+              <i class="bi bi-plus-circle"></i> ยื่นใบลาใหม่
+            </a>
+          </div>
+        <% } else { %>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle bg-white rounded shadow-sm">
+              <thead class="table-light">
+                <tr>
+                  <th>ลำดับ</th>
+                  <th>ประเภทการลา</th>
+                  <th>วันที่ลา</th>
+                  <th>สถานะ</th>
+                  <th>วันที่สร้าง</th>
+                  <th>จัดการ</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% myLeaves.forEach(function(l, i) { %>
+                  <tr>
+                    <td><%= i + 1 %></td>
+                    <td><span class="badge bg-info text-dark"><%= l.leave_type %></span></td>
+                    <td>
+                      <small>
+                        <%= l.start_date %><br>
+                        <i class="bi bi-arrow-down"></i> <%= l.end_date %>
+                      </small>
+                    </td>
+                    <td>
+                      <% if (l.status === 'pending') { %>
+                        <span class="badge bg-warning text-dark"><i class="bi bi-clock"></i> <%= statusText(l.status) %></span>
+                      <% } else if (l.status === 'approved') { %>
+                        <span class="badge bg-success"><i class="bi bi-check-circle"></i> <%= statusText(l.status) %></span>
+                      <% } else if (l.status === 'rejected') { %>
+                        <span class="badge bg-danger"><i class="bi bi-x-circle"></i> <%= statusText(l.status) %></span>
+                      <% } else if (l.status === 'forwarded') { %>
+                        <span class="badge bg-primary"><i class="bi bi-send"></i> <%= statusText(l.status) %></span>
+                      <% } %>
+                    </td>
+                    <td><small><%= l.created_at %></small></td>
+                    <td>
+                      <% if (l.supervisor_comment) { %>
+                        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="<%= l.supervisor_comment %>">
+                          <i class="bi bi-chat-left-text"></i>
+                        </button>
+                      <% } %>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-md-none fixed-bottom bg-white border-top p-2 text-center">
+    <a href="/admin/submit" class="btn btn-primary w-100">
+      <i class="bi bi-plus-circle"></i> ยื่นใบลาใหม่
+    </a>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.forEach(function(el){ new bootstrap.Tooltip(el); });
+
+    // Open "ใบลาของฉัน" tab when redirected from submit (?tab=my)
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('tab') === 'my') {
+      var tabBtn = document.getElementById('myTabBtn');
+      if (tabBtn) {
+        var tab = new bootstrap.Tab(tabBtn);
+        tab.show();
+      }
+    }
+  </script>
+</body>
+</html>
