@@ -30,10 +30,13 @@ npx wrangler deploy
 - **ไฟล์ใบลา**: เก็บใน KV namespace `FILES` (ค่าสูงสุด 25MB/ไฟล์, ใช้ได้กับ PDF <10MB)
 
 ### ข้อจำกัดที่ต่างจากเวอร์ชัน Local
-- **อีเมล**: บน Cloudflare Workers ไม่มี SMTP (ไม่สามารถใช้ nodemailer ได้) → ระบบรองรับ **HTTP Email API** (Resend-compatible, ส่ง JSON ผ่าน `POST` ด้วย Bearer token)
-  - Admin ตั้งค่า **API URL + API Key + From Email** ในหน้าจัดการใบลา
-  - ถ้าไม่ตั้ง API Key ระบบจะบันทึกสถานะเป็น **ส่งต่อสำเร็จ (จำลอง)** — สถานะในระบบยังครบ แต่ไม่มีอีเมลจริงถูกส่ง
-  - ตัวอย่าง API: Resend (`https://api.resend.com/emails`), หรือ Mailgun/SendGrid HTTP API
+- **อีเมล**: บน Cloudflare Workers ไม่มี SMTP แบบ nodemailer ตรงๆ → ระบบใช้ **`worker-mailer`** (ไลบรารี SMTP ผ่าน Cloudflare TCP Sockets API) ส่งอีเมลจริงพร้อมไฟล์แนบ PDF ได้
+  - SWU ใช้ **Google Workspace** (MX = Google) โดย `smtp.swu.ac.th` เป็น SMTP ภายในเท่านั้น (ไม่ resolve ใน DNS สาธารณะ) → **ไม่สามารถใช้จาก Cloudflare ได้**
+  - แนะนำให้ใช้ **`smtp.gmail.com:465` (SSL)** + **App Password** ของบัญชี `@g.swu.ac.th` เพื่อส่งถึง inbox ของ มศว รับประกันการจัดส่ง
+  - วิธีสร้าง App Password: เปิด 2-Step Verification ที่ `myaccount.google.com` → สร้าง App Password ที่ `myaccount.google.com/apppasswords` (16 หลัก)
+  - Admin ตั้งค่า **SMTP Host / Port / User / Pass + SSL** ในหน้าจัดการใบลา (หน้า `/admin/manage/:leaveId`)
+  - ถ้าไม่กรอก User/Pass ระบบจะบันทึกสถานะเป็น **ส่งต่อสำเร็จ (จำลอง)** — สถานะในระบบยังครบ แต่ไม่มีอีเมลจริงถูกส่ง
+- **หมายเหตุ**: ตั้งค่า SMTP ด้วยค่าเริ่มต้น `smtp.gmail.com:465` (กาช่อง SSL)
 
 ---
 

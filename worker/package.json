@@ -10,7 +10,8 @@
     "migrate:remote": "wrangler d1 migrations apply swu-leave-db --remote"
   },
   "dependencies": {
-    "hono": "^4.5.0"
+    "hono": "^4.5.0",
+    "worker-mailer": "^1.2.1"
   },
   "devDependencies": {
     "wrangler": "^4.129.0"

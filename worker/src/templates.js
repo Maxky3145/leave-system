@@ -425,15 +425,23 @@ function managePage(user, leave, files, settings, forwardPath, downloadPrefix) {
             <input type="email" class="form-control" id="hrEmail" value="${esc(settings.hr_email)}" required>
             <div class="form-text">ระบุ email ของเจ้าหน้าที่บุคคลที่ต้องการส่งเอกสารไป</div></div>
           <div class="border rounded p-3 bg-light mb-3">
-            <h6 class="fw-bold mb-3"><i class="bi bi-gear"></i> ตั้งค่า Email API (สำหรับ Workers)</h6>
+            <h6 class="fw-bold mb-3"><i class="bi bi-gear"></i> การตั้งค่า SMTP (ส่งอีเมลจริง)</h6>
             <div class="row g-2">
-              <div class="col-12"><label class="form-label small">API URL</label>
-                <input type="text" class="form-control form-control-sm" id="apiUrl" value="${esc(settings.api_url)}" placeholder="https://api.resend.com/emails"></div>
-              <div class="col-md-6"><label class="form-label small">API Key</label>
-                <input type="password" class="form-control form-control-sm" id="apiKey" value="${esc(settings.api_key)}" placeholder="re_..."></div>
-              <div class="col-md-6"><label class="form-label small">From Email</label>
-                <input type="email" class="form-control form-control-sm" id="fromEmail" value="${esc(settings.from_email)}" placeholder="leave-system@example.com"></div>
-              <div class="col-12"><small class="text-muted">ใช้ Resend-compatible API (POST JSON: from/to/subject/text/attachments base64) ถ้าไม่มี API Key จะบันทึกสถานะเป็นการจำลองการส่ง</small></div>
+              <div class="col-md-6"><label class="form-label small">SMTP Host</label>
+                <input type="text" class="form-control form-control-sm" id="smtpHost" value="${esc(settings.smtp_host)}" placeholder="smtp.gmail.com"></div>
+              <div class="col-md-6"><label class="form-label small">SMTP Port</label>
+                <input type="number" class="form-control form-control-sm" id="smtpPort" value="${esc(settings.smtp_port)}"></div>
+              <div class="col-md-6"><label class="form-label small">ผู้ใช้ (email)</label>
+                <input type="text" class="form-control form-control-sm" id="smtpUser" value="${esc(settings.smtp_user)}" placeholder="chanok@g.swu.ac.th"></div>
+              <div class="col-md-6"><label class="form-label small">รหัสผ่าน</label>
+                <input type="password" class="form-control form-control-sm" id="smtpPass" value="${esc(settings.smtp_pass)}" placeholder="App Password 16 หลัก"></div>
+              <div class="col-12">
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="checkbox" id="smtpSecure" ${settings.smtp_secure ? 'checked' : ''}>
+                  <label class="form-check-label small" for="smtpSecure">ใช้ SSL (TLS on connect, port 465)</label>
+                </div>
+              </div>
+              <div class="col-12"><small class="text-muted">SWU ใช้ Google Workspace — ใช้ smtp.gmail.com:465 + App Password ของบัญชี @g.swu.ac.th (เปิด 2-Step แล้วสร้าง App Password ได้ที่ myaccount.google.com/apppasswords) เพื่อส่งตรงถึง inbox ของ มศว</small></div>
             </div>
           </div>
           <button type="submit" class="btn btn-primary" id="forwardBtn"><i class="bi bi-send"></i> ส่งต่อเอกสาร</button>
@@ -471,9 +479,11 @@ function managePage(user, leave, files, settings, forwardPath, downloadPrefix) {
         msg.innerHTML = '<span class="text-primary"><i class="bi bi-hourglass"></i> กำลังส่ง...</span>';
         var payload = {
           hr_email: document.getElementById('hrEmail').value,
-          api_url: document.getElementById('apiUrl').value,
-          api_key: document.getElementById('apiKey').value,
-          from_email: document.getElementById('fromEmail').value
+          smtp_host: document.getElementById('smtpHost').value,
+          smtp_port: document.getElementById('smtpPort').value,
+          smtp_user: document.getElementById('smtpUser').value,
+          smtp_pass: document.getElementById('smtpPass').value,
+          smtp_secure: document.getElementById('smtpSecure').checked
         };
         try {
           var resp = await fetch('${forwardPath}', {
@@ -483,7 +493,7 @@ function managePage(user, leave, files, settings, forwardPath, downloadPrefix) {
           });
           var data = await resp.json();
           if (data.success) {
-            msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle"></i> ' + (data.simulated ? 'ส่งต่อสำเร็จ (จำลองการส่ง / อีเมลไม่ถูกส่งจริง)' : 'ส่งต่อสำเร็จ') + '</span>';
+            msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle"></i> ส่งต่อสำเร็จ</span>';
             setTimeout(() => location.reload(), 1500);
           } else {
             msg.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle"></i> ' + data.error + '</span>';

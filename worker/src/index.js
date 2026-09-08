@@ -505,10 +505,10 @@ app.get('/admin/manage/:leaveId', async (c) => {
   ).bind(leaveId).all();
 
   const settings = await c.env.DB.prepare(
-    'SELECT hr_email, api_url, api_key, from_email FROM email_settings LIMIT 1'
+    'SELECT hr_email, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure FROM email_settings LIMIT 1'
   ).first();
 
-  const s = settings || { hr_email: 'hr@swu.ac.th', api_url: '', api_key: '', from_email: '' };
+  const s = settings || { hr_email: 'hr@swu.ac.th', smtp_host: 'smtp.gmail.com', smtp_port: 465, smtp_user: '', smtp_pass: '', smtp_secure: 1 };
 
   return c.html(T.managePage(g.user, leave, results || [], s, `/admin/forward/${leaveId}`, '/admin/download'));
 });
@@ -586,20 +586,13 @@ app.post('/admin/forward/:leaveId', async (c) => {
   const staffName = staffRow ? staffRow.name : '';
   const leaveType = staffRow ? staffRow.leave_type : '';
 
-  const attachments = [];
-  for (const f of files) {
-    const value = await c.env.FILES.get(`leave_${leaveId}_${f.file_type}`, { type: 'arrayBuffer' });
-    if (value) attachments.push({ filename: f.original_name, content: toBase64(value) });
-  }
+  const smtpHost = (body.smtp_host || 'smtp.gmail.com').trim();
+  const smtpPort = parseInt(body.smtp_port, 10) || 465;
+  const smtpUser = (body.smtp_user || '').trim();
+  const smtpPass = body.smtp_pass || '';
+  const smtpSecure = !!(body.smtp_secure !== undefined ? body.smtp_secure : true);
 
-  if (attachments.length === 0) {
-    return c.json({ success: false, error: 'ไม่พบไฟล์ในระบบจัดเก็บ' }, 400);
-  }
-
-  const apiUrl = (body.api_url || '').trim();
-  const apiKey = (body.api_key || '').trim();
-
-  const from = (body.from_email || 'no-reply@swu.ac.th').trim();
+  const from = (body.from_email || smtpUser || 'no-reply@swu.ac.th').trim();
   const subject = `ส่งต่อใบลาประเภท ${leaveType} ของ ${staffName}`;
   const text = `เอกสารใบลาได้รับการส่งต่อเพื่อพิจารณา\n\nชื่อผู้ลา: ${staffName}\nประเภทการลา: ${leaveType}\nเลขที่ใบลา: ${leaveId}\n\nโปรดตรวจสอบไฟล์แนบครับ/ค่ะ`;
 
@@ -607,28 +600,27 @@ app.post('/admin/forward/:leaveId', async (c) => {
   let messageId = null;
   let errorMsg = null;
 
-  if (apiUrl && apiKey) {
+  const attachments = [];
+  for (const f of files) {
+    const value = await c.env.FILES.get(`leave_${leaveId}_${f.file_type}`, { type: 'arrayBuffer' });
+    if (value) attachments.push({ filename: f.original_name, content: toBase64(value) });
+  }
+
+  if (smtpUser && smtpPass) {
     try {
-      const resp = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
+      const { WorkerMailer } = await import('worker-mailer');
+      await WorkerMailer.send(
+        {
+          host: smtpHost,
+          port: smtpPort,
+          secure: smtpSecure,
+          startTls: !smtpSecure,
+          credentials: { username: smtpUser, password: smtpPass },
+          authType: 'plain'
         },
-        body: JSON.stringify({
-          from,
-          to: hrEmail,
-          subject,
-          text,
-          attachments
-        })
-      });
-      const data = await resp.json().catch(() => ({}));
-      if (!resp.ok) {
-        errorMsg = `ส่งอีเมลไม่สำเร็จ: ${JSON.stringify(data) || resp.status}`;
-      } else {
-        messageId = data.id || 'sent';
-      }
+        { from, to: hrEmail, subject, text, attachments }
+      );
+      messageId = 'sent';
     } catch (err) {
       errorMsg = 'ส่งอีเมลไม่สำเร็จ: ' + (err && err.message ? err.message : String(err));
     }
@@ -637,8 +629,8 @@ app.post('/admin/forward/:leaveId', async (c) => {
   }
 
   await c.env.DB.prepare(
-    "UPDATE email_settings SET hr_email = ?, api_url = ?, api_key = ?, from_email = ? WHERE id = 1"
-  ).bind(hrEmail, apiUrl, apiKey, from).run();
+    'UPDATE email_settings SET hr_email = ?, smtp_host = ?, smtp_port = ?, smtp_user = ?, smtp_pass = ?, smtp_secure = ? WHERE id = 1'
+  ).bind(hrEmail, smtpHost, smtpPort, smtpUser, smtpPass, smtpSecure ? 1 : 0).run();
 
   if (errorMsg && !simulated) {
     return c.json({ success: false, error: errorMsg }, 500);
